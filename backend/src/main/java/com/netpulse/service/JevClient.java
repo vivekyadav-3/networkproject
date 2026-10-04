@@ -20,8 +20,8 @@ public class JevClient {
     private final String apiKey;
 
     public JevClient(RestClient.Builder restClientBuilder,
-            @Value("${jev.api.url}") String apiUrl,
-            @Value("${jev.api.key:}") String apiKey) {
+            @Value("${jev.api.url:https://api.typesafe.ai/v1/systemone}") String apiUrl,
+            @Value("${jev.api.key:apikey_2449698bc53f7af4d9b82d1c5bf54bcacb0_ffe1de3d81523d92b0569d799866262d6d37cc825dfd24426ddf429e44fc7f87}") String apiKey) {
         this.restClient = restClientBuilder.build();
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
