@@ -1,0 +1,50 @@
+@PathVataivle 
+identifies a specific resource 
+
+@REequestPOaram 
+filters,searches,sort 
+
+@patthVariable 
+Use @PathVariabel when the value is part of thw resource identity
+for our project :
+GET/api/devices/15
+15 defines particular device 
+
+@GetMapping("/{id}")
+public ResponseEntity<DeviceResponseDto> getDevice(
+    @PathVariabel LOng id){
+
+    }
+
+
+@RequestParam 
+use requestParam when you are asking for a asuset pr cariation of a collections
+GET/api/devices?status=ONLINE 
+here we are not identifying one particular device 
+
+here give me devices whose status is online 
+
+@GetMapping 
+public ResponseEntity<List<DeviceRespinseDto>>getDevice(
+    @RequestParam DeviceStuats status ){
+
+    }
+
+
+
+why 201 created insted of 200 ok for POST 
+
+suppose we create a device 
+POST/api/deviceswith 
+{
+    "hostname": "Router-1",
+    "ipAddress": "192.168.1.10",
+    "deviceType": "ROUTER",
+    "status": "ONLINE"
+}
+
+
+if succesful http provides a specific status code 
+201 create 
+200 ok 
+is more general 
