@@ -43,4 +43,34 @@ export const api = {
     }
     return res.json();
   },
+
+  // 5. Analyze telemetry with Jev Structured Decision AI
+  async analyzeIncident(telemetryData) {
+    const res = await fetch(`${BASE_URL}/ai/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(telemetryData),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Incident analysis failed');
+    }
+    return res.json();
+  },
+
+  // 6. Fetch historical incidents from database
+  async getIncidents() {
+    const res = await fetch(`${BASE_URL}/ai/incidents`);
+    if (!res.ok) throw new Error('Failed to fetch incidents');
+    return res.json();
+  },
+
+  // 7. Update incident status
+  async updateIncidentStatus(id, status) {
+    const res = await fetch(`${BASE_URL}/ai/incidents/${id}/status?status=${status}`, {
+      method: 'PATCH',
+    });
+    if (!res.ok) throw new Error('Failed to update incident status');
+    return res.json();
+  },
 };

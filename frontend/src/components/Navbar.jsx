@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Server, Calculator } from 'lucide-react';
+import { Activity, Server, Calculator, BrainCircuit } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab }) {
   return (
@@ -38,7 +38,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
               Net<span style={{ color: 'var(--accent-cyan)' }}>Pulse</span>
             </h1>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0 }}>
-              Network Infrastructure & Diagnostics
+              Network Intelligence & Jev AI Diagnostics
             </p>
           </div>
         </div>
@@ -54,6 +54,14 @@ export default function Navbar({ activeTab, setActiveTab }) {
           </button>
 
           <button
+            onClick={() => setActiveTab('ai')}
+            className={activeTab === 'ai' ? 'btn-primary' : 'btn-secondary'}
+          >
+            <BrainCircuit size={18} />
+            AI Incident Intelligence
+          </button>
+
+          <button
             onClick={() => setActiveTab('subnet')}
             className={activeTab === 'subnet' ? 'btn-primary' : 'btn-secondary'}
           >
@@ -65,7 +73,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
         {/* Status Indicator */}
         <div className="badge-online">
           <span className="pulse-dot"></span>
-          NOC Connected
+          Jev SystemOne Ready
         </div>
       </div>
     </header>

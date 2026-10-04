@@ -3,24 +3,31 @@ import Navbar from './components/Navbar';
 import DeviceTable from './components/DeviceTable';
 import AddDeviceModal from './components/AddDeviceModal';
 import SubnetCalculator from './components/SubnetCalculator';
+import AIIncidentPanel from './components/AIIncidentPanel';
+import IncidentHistory from './components/IncidentHistory';
 import { api } from './api';
-import { Server, CheckCircle2, AlertTriangle, Network, RefreshCw } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, Network, RefreshCw, BrainCircuit } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('devices');
   const [devices, setDevices] = useState([]);
+  const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Fetch devices from Spring Boot backend
-  const loadDevices = async () => {
+  // Fetch initial data
+  const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await api.getDevices();
-      setDevices(data);
+      const [devData, incData] = await Promise.all([
+        api.getDevices().catch(() => []),
+        api.getIncidents().catch(() => [])
+      ]);
+      setDevices(devData);
+      setIncidents(incData);
     } catch (err) {
       setError('Cannot connect to Spring Boot backend at http://localhost:8080. Ensure backend is running.');
     } finally {
@@ -29,7 +36,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadDevices();
+    loadData();
   }, []);
 
   const handleAddDevice = async (newDeviceData) => {
@@ -44,10 +51,22 @@ export default function App() {
     }
   };
 
+  const handleIncidentCreated = async (payload) => {
+    const newInc = await api.analyzeIncident(payload);
+    setIncidents(prev => [newInc, ...prev]);
+    return newInc;
+  };
+
+  const handleIncidentStatusChange = async (id, status) => {
+    const updated = await api.updateIncidentStatus(id, status);
+    setIncidents(prev => prev.map(i => (i.id === id ? updated : i)));
+  };
+
   // Metrics
   const totalCount = devices.length;
   const onlineCount = devices.filter(d => d.status === 'ONLINE').length;
   const offlineCount = devices.filter(d => d.status === 'OFFLINE').length;
+  const activeIncidentCount = incidents.filter(i => i.status === 'OPEN').length;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -60,89 +79,124 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: 'rgba(244, 63, 94, 0.12)',
-            color: '#fb7185',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
+            padding: '16px 20px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '12px',
-            padding: '14px 18px',
-            marginBottom: '24px'
+            color: 'var(--accent-red)',
+            marginBottom: '24px',
+            fontSize: '0.9rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <AlertTriangle size={18} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <AlertTriangle size={20} />
               <span>{error}</span>
             </div>
-            <button onClick={loadDevices} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+            <button
+              onClick={loadData}
+              className="btn-secondary"
+              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+            >
               <RefreshCw size={14} /> Retry
             </button>
           </div>
         )}
 
-        {/* Global Network Overview KPIs */}
-        <div style={{
+        {/* Global Network Health Stat Cards */}
+        <section style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px',
-          marginBottom: '28px'
+          marginBottom: '32px'
         }}>
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-dim)', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>TOTAL NODES</span>
-              <Server size={18} style={{ color: 'var(--accent-cyan)' }} />
+          <div className="card stat-card">
+            <div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Total Managed Devices</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px' }}>{totalCount}</div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{totalCount}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>Registered hardware units</div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-cyan)' }}>
+              <Server size={24} />
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-dim)', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ONLINE</span>
-              <CheckCircle2 size={18} style={{ color: 'var(--accent-emerald)' }} />
+          <div className="card stat-card">
+            <div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Healthy / Online</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '4px' }}>{onlineCount}</div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>{onlineCount}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>Active interfaces responding</div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)' }}>
+              <CheckCircle2 size={24} />
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-dim)', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>OFFLINE</span>
-              <AlertTriangle size={18} style={{ color: 'var(--accent-rose)' }} />
+          <div className="card stat-card">
+            <div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Offline / Critical</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-red)', marginTop: '4px' }}>{offlineCount}</div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: offlineCount > 0 ? 'var(--accent-rose)' : 'var(--text-dim)' }}>
-              {offlineCount}
+            <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)' }}>
+              <AlertTriangle size={24} />
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>Requires attention</div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-dim)', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ENGINE</span>
-              <Network size={18} style={{ color: 'var(--accent-blue)' }} />
+          <div className="card stat-card">
+            <div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Active AI Incidents</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-cyan)', marginTop: '4px' }}>{activeIncidentCount}</div>
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '6px' }}>CIDR IPv4</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>RFC 3021 compliant</div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-cyan)' }}>
+              <BrainCircuit size={24} />
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Tab Content */}
-        {activeTab === 'devices' ? (
+        {/* Tab 1: Device Inventory */}
+        {activeTab === 'devices' && (
           <DeviceTable
             devices={devices}
-            onDelete={handleDeleteDevice}
+            loading={loading}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
             onOpenAddModal={() => setIsAddModalOpen(true)}
+            onDeleteDevice={handleDeleteDevice}
           />
-        ) : (
+        )}
+
+        {/* Tab 2: AI Incident Intelligence */}
+        {activeTab === 'ai' && (
+          <div>
+            <AIIncidentPanel onIncidentCreated={handleIncidentCreated} />
+            <IncidentHistory
+              incidents={incidents}
+              onStatusChange={handleIncidentStatusChange}
+            />
+          </div>
+        )}
+
+        {/* Tab 3: Subnet Calculator */}
+        {activeTab === 'subnet' && (
           <SubnetCalculator />
         )}
       </main>
 
       {/* Add Device Modal */}
-      <AddDeviceModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddDevice={handleAddDevice}
-      />
+      {isAddModalOpen && (
+        <AddDeviceModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAdd={handleAddDevice}
+        />
+      )}
+
+      {/* Footer */}
+      <footer style={{
+        borderTop: '1px solid var(--border-subtle)',
+        padding: '24px',
+        textAlign: 'center',
+        color: 'var(--text-dim)',
+        fontSize: '0.8rem'
+      }}>
+        NetPulse Network &copy; {new Date().getFullYear()} — Powered by Spring Boot 3, React 19 & Jev AI Structured Decisions
+      </footer>
     </div>
   );
 }
